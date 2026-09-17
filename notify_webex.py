@@ -62,10 +62,16 @@ class WebexClient:
                 return (message.get("text") or "").strip().lower()
         return ""
 
-    def send_markdown(self, room_id: str, markdown: str) -> None:
-        self._request(
-            "POST", f"{API_BASE}/messages", json={"roomId": room_id, "markdown": markdown}
-        )
+    def send_markdown(self, room_id: str, markdown: str, card: dict | None = None) -> None:
+        payload: dict = {"roomId": room_id, "markdown": markdown}
+        if card:
+            payload["attachments"] = [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": card,
+                }
+            ]
+        self._request("POST", f"{API_BASE}/messages", json=payload)
 
 
 def _opted_out(client: WebexClient, room_id: str, bot_person_id: str) -> bool:
@@ -75,7 +81,13 @@ def _opted_out(client: WebexClient, room_id: str, bot_person_id: str) -> bool:
     return text in OPT_OUT_WORDS
 
 
-def notify(markdown: str, *, dry_run: bool = False, token: str | None = None) -> dict:
+def notify(
+    markdown: str,
+    *,
+    card: dict | None = None,
+    dry_run: bool = False,
+    token: str | None = None,
+) -> dict:
     """Send `markdown` to every direct room the bot is in that has not opted out."""
     token = token or os.environ.get("WEBEX_BOT_TOKEN")
     if not token:
@@ -95,7 +107,7 @@ def notify(markdown: str, *, dry_run: bool = False, token: str | None = None) ->
             sent += 1
             continue
         try:
-            client.send_markdown(room_id, markdown)
+            client.send_markdown(room_id, markdown, card)
             sent += 1
         except WebexError:
             failed += 1

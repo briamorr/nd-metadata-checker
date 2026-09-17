@@ -44,27 +44,88 @@ def to_text(diff: dict) -> str:
 
 
 def to_markdown(diff: dict) -> str:
+    """Fallback text for clients that cannot render the Adaptive Card.
+
+    Webex does not render markdown tables in messages, so this stays list-based.
+    """
     lines = [f"**{_summary(diff)}**", ""]
 
     if not diff["first_run"]:
         for row in diff["added"]:
-            lines.append(f"- **New:** `{row.get('Name', '')}` — released {row.get('ReleaseDate', '')}  \n  {row.get('Description', '')}")
+            lines.append(f"- **New:** {row.get('Name', '')} — released {row.get('ReleaseDate', '')}")
         for entry in diff["updated"]:
             changes = "; ".join(
-                f"{f} `{entry['previous'].get(f, '')}` → `{entry['current'].get(f, '')}`"
+                f"{f} {entry['previous'].get(f, '')} → {entry['current'].get(f, '')}"
                 for f in entry["fields"]
             )
-            lines.append(f"- **Updated:** `{entry['current'].get('Name', '')}` — {changes}")
+            lines.append(f"- **Updated:** {entry['current'].get('Name', '')} — {changes}")
         for row in diff["removed"]:
-            lines.append(f"- **Removed:** `{row.get('Name', '')}`")
+            lines.append(f"- **Removed:** {row.get('Name', '')} is no longer listed")
         lines.append("")
 
-    lines.append("Currently available:")
-    lines.append("| " + " | ".join(LABELS) + " |")
-    lines.append("| " + " | ".join("---" for _ in LABELS) + " |")
+    lines.append("**Currently available**")
     for row in diff["current"]:
-        lines.append("| " + " | ".join(str(row.get(label) or "") for label in LABELS) + " |")
+        lines.append(f"- **{row.get('Name', '')}** — released {row.get('ReleaseDate', '')}")
+        lines.append(f"  {row.get('Description', '')}")
     return "\n".join(lines)
+
+
+def _text_block(text: str, **kwargs) -> dict:
+    return {"type": "TextBlock", "text": text, "wrap": True, **kwargs}
+
+
+def _change_blocks(diff: dict) -> list[dict]:
+    blocks = []
+    for row in diff["added"]:
+        blocks.append(
+            _text_block(f"**New** · {row.get('Name', '')} ({row.get('ReleaseDate', '')})", color="Good")
+        )
+    for entry in diff["updated"]:
+        changes = ", ".join(
+            f"{f}: {entry['previous'].get(f, '')} → {entry['current'].get(f, '')}"
+            for f in entry["fields"]
+        )
+        blocks.append(
+            _text_block(f"**Updated** · {entry['current'].get('Name', '')} — {changes}", color="Warning")
+        )
+    for row in diff["removed"]:
+        blocks.append(
+            _text_block(f"**Removed** · {row.get('Name', '')}", color="Attention")
+        )
+    return blocks
+
+
+def to_card(diff: dict) -> dict:
+    """Build an Adaptive Card payload for the Webex message attachment."""
+    body: list[dict] = [
+        _text_block("Nexus Dashboard Metadata", size="Medium", weight="Bolder"),
+        _text_block(_summary(diff), isSubtle=True, spacing="None"),
+    ]
+
+    changes = _change_blocks(diff) if not diff["first_run"] else []
+    if changes:
+        body.append({"type": "Container", "separator": True, "items": changes})
+
+    items = []
+    for row in diff["current"]:
+        items.append(_text_block(row.get("Name", ""), weight="Bolder", spacing="Medium"))
+        items.append(_text_block(row.get("Description", ""), isSubtle=True, spacing="None"))
+        items.append(
+            {
+                "type": "FactSet",
+                "spacing": "Small",
+                "facts": [{"title": "Released", "value": row.get("ReleaseDate", "")}],
+            }
+        )
+    body.append({"type": "Container", "separator": True, "items": items})
+
+    return {
+        "type": "AdaptiveCard",
+        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+        "version": "1.3",
+        "body": body,
+    }
+
 
 
 def print_table(rows: list[dict]) -> None:

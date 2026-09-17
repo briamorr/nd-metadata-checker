@@ -85,7 +85,9 @@ def main() -> int:
 
         try:
             result = notify_webex.notify(
-                render.to_markdown(diff), dry_run=args.dry_run
+                render.to_markdown(diff),
+                card=render.to_card(diff),
+                dry_run=args.dry_run,
             )
         except notify_webex.WebexError as exc:
             print(f"Webex notification failed: {exc}", file=sys.stderr)
