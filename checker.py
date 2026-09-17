@@ -24,10 +24,15 @@ from intersight.signing import (
 DEFAULT_HOST = "https://us-east-1.intersight.com"
 ND_FILTER = "ObjectType eq 'niaapi.NdMetadataSoftwareDownload'"
 # Display name -> SDK model attribute
-FIELDS = {"Description": "description", "Name": "name", "ReleaseDate": "release_date"}
+FIELDS = {
+    "Description": "description",
+    "Name": "name",
+    "ReleaseDate": "release_date",
+    "Version": "version",
+}
 PAGE_SIZE = 100
 KEY_FIELD = "Name"
-COMPARE_FIELDS = ("ReleaseDate", "Description")
+COMPARE_FIELDS = ("ReleaseDate", "Version", "Description")
 
 
 @contextmanager

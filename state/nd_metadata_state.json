@@ -2,11 +2,13 @@
   {
     "Description": "Air-gap metadata package for Nexus Dashboard releases before 4.2",
     "Name": "ndi-metadata.ni",
-    "ReleaseDate": "2026-09-15"
+    "ReleaseDate": "2026-09-15",
+    "Version": "120"
   },
   {
     "Description": "Air-gap metadata package for Nexus Dashboard releases 4.2 and later",
     "Name": "nd-metadata.tar.gz",
-    "ReleaseDate": "2026-09-15"
+    "ReleaseDate": "2026-09-15",
+    "Version": "120"
   }
 ]

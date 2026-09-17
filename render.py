@@ -65,7 +65,10 @@ def to_markdown(diff: dict) -> str:
 
     lines.append("**Currently available**")
     for row in diff["current"]:
-        lines.append(f"- **{row.get('Name', '')}** — released {row.get('ReleaseDate', '')}")
+        lines.append(
+            f"- **{row.get('Name', '')}** — version {row.get('Version', '')}, "
+            f"released {row.get('ReleaseDate', '')}"
+        )
         lines.append(f"  {row.get('Description', '')}")
     return "\n".join(lines)
 
@@ -106,18 +109,40 @@ def to_card(diff: dict) -> dict:
     if changes:
         body.append({"type": "Container", "separator": True, "items": changes})
 
-    items = []
-    for row in diff["current"]:
-        items.append(_text_block(row.get("Name", ""), weight="Bolder", spacing="Medium"))
-        items.append(_text_block(row.get("Description", ""), isSubtle=True, spacing="None"))
-        items.append(
+    for index, row in enumerate(diff["current"]):
+        body.append(
             {
-                "type": "FactSet",
-                "spacing": "Small",
-                "facts": [{"title": "Released", "value": row.get("ReleaseDate", "")}],
+                "type": "Container",
+                "separator": True,
+                "spacing": "ExtraLarge" if index else "Large",
+                "items": [
+                    _text_block(row.get("Name", ""), weight="Bolder", size="Medium"),
+                    _text_block(row.get("Description", ""), isSubtle=True, spacing="Small"),
+                    {
+                        "type": "ColumnSet",
+                        "spacing": "Medium",
+                        "columns": [
+                            {
+                                "type": "Column",
+                                "width": "stretch",
+                                "items": [
+                                    _text_block("RELEASED", isSubtle=True, size="Small", weight="Bolder"),
+                                    _text_block(row.get("ReleaseDate", ""), spacing="None"),
+                                ],
+                            },
+                            {
+                                "type": "Column",
+                                "width": "stretch",
+                                "items": [
+                                    _text_block("VERSION", isSubtle=True, size="Small", weight="Bolder"),
+                                    _text_block(str(row.get("Version", "")), spacing="None"),
+                                ],
+                            },
+                        ],
+                    },
+                ],
             }
         )
-    body.append({"type": "Container", "separator": True, "items": items})
 
     return {
         "type": "AdaptiveCard",
