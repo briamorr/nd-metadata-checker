@@ -25,6 +25,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # Temporary: notify on every run. Set to "false" for change-only alerts.
+      ALWAYS_FORCE: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -44,8 +47,12 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=(--notify webex --state-file state/nd_metadata_state.json)
-          [ "$FORCE" = "true" ] && args+=(--force)
-          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          if [ "$FORCE" = "true" ] || [ "$ALWAYS_FORCE" = "true" ]; then
+            args+=(--force)
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
           python nd_metadata_checker.py "${args[@]}"
 
       - name: Commit updated state
