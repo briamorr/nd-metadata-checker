@@ -2,7 +2,8 @@ name: ND metadata check
 
 on:
   schedule:
-    - cron: "17 13 * * *"
+    # 02:00 UTC = 9:00 PM EST (10:00 PM EDT).
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -26,8 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      # Temporary: notify on every run. Set to "false" for change-only alerts.
-      ALWAYS_FORCE: "true"
+      # Set to "true" to notify on every run instead of only on change.
+      ALWAYS_FORCE: "false"
     steps:
       - uses: actions/checkout@v4
 
