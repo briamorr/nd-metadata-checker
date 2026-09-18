@@ -94,7 +94,7 @@ def main() -> int:
             return 1
         print(
             f"Webex: {result['sent']} sent, {result['skipped']} opted out, "
-            f"{result['failed']} failed of {result['rooms']} direct rooms"
+            f"{result['failed']} failed of {result['rooms']} spaces"
             + (" (dry run)" if args.dry_run else ""),
             file=sys.stderr,
         )

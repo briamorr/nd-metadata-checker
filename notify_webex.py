@@ -50,8 +50,9 @@ class WebexClient:
     def my_person_id(self) -> str:
         return self._request("GET", f"{API_BASE}/people/me").json()["id"]
 
-    def direct_rooms(self) -> list[dict]:
-        return self._paginate(f"{API_BASE}/rooms", {"type": "direct", "max": 100})
+    def rooms(self) -> list[dict]:
+        """Every space the bot belongs to, 1:1 and group."""
+        return self._paginate(f"{API_BASE}/rooms", {"max": 100})
 
     def last_inbound_message(self, room_id: str, bot_person_id: str) -> str:
         items = self._request(
@@ -75,10 +76,13 @@ class WebexClient:
 
 
 def _opted_out(client: WebexClient, room_id: str, bot_person_id: str) -> bool:
-    text = client.last_inbound_message(room_id, bot_person_id)
-    if text in OPT_IN_WORDS:
+    # Group-space mentions arrive as "BotName stop", so match on words, not the whole string.
+    words = set(
+        client.last_inbound_message(room_id, bot_person_id).replace(",", " ").split()
+    )
+    if words & OPT_IN_WORDS:
         return False
-    return text in OPT_OUT_WORDS
+    return bool(words & OPT_OUT_WORDS)
 
 
 def notify(
@@ -88,14 +92,14 @@ def notify(
     dry_run: bool = False,
     token: str | None = None,
 ) -> dict:
-    """Send `markdown` to every direct room the bot is in that has not opted out."""
+    """Send `markdown` to every space the bot is in that has not opted out."""
     token = token or os.environ.get("WEBEX_BOT_TOKEN")
     if not token:
         raise WebexError("WEBEX_BOT_TOKEN is not set")
 
     client = WebexClient(token)
     bot_person_id = client.my_person_id()
-    rooms = client.direct_rooms()
+    rooms = client.rooms()
 
     sent = skipped = failed = 0
     for room in rooms:
