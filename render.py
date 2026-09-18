@@ -48,7 +48,11 @@ def to_markdown(diff: dict) -> str:
 
     Webex does not render markdown tables in messages, so this stays list-based.
     """
-    lines = [f"**{_summary(diff)}**", ""]
+    lines = [
+        "**Nexus Dashboard Metadata Update Available**",
+        "Download at https://www.intersight.com",
+        "",
+    ]
 
     if not diff["first_run"]:
         for row in diff["added"]:
