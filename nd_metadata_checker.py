@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import intersight
@@ -25,6 +26,14 @@ def load_state(state_file: Path) -> list[dict] | None:
 def save_state(state_file: Path, rows: list[dict]) -> None:
     state_file.parent.mkdir(parents=True, exist_ok=True)
     state_file.write_text(json.dumps(rows, indent=2) + "\n")
+
+
+def write_heartbeat(state_dir: Path) -> None:
+    """Touch a file every run so the repo stays active and the cron isn't disabled."""
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / "last_run.txt").write_text(
+        datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ") + "\n"
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -70,7 +79,7 @@ def main() -> int:
         return 1
 
     diff = diff_downloads(load_state(args.state_file), current)
-    save_state(args.state_file, current)
+    write_heartbeat(args.state_file.parent)
 
     if not diff["changed"] and not args.force:
         return 0
@@ -90,6 +99,7 @@ def main() -> int:
                 dry_run=args.dry_run,
             )
         except notify_webex.WebexError as exc:
+            # State is left untouched so the next run retries this alert.
             print(f"Webex notification failed: {exc}", file=sys.stderr)
             return 1
         print(
@@ -100,6 +110,10 @@ def main() -> int:
         )
         if result["failed"]:
             return 1
+        if args.dry_run:
+            return 0
+
+    save_state(args.state_file, current)
     return 0
 
 
