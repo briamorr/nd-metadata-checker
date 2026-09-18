@@ -101,8 +101,14 @@ def _change_blocks(diff: dict) -> list[dict]:
 def to_card(diff: dict) -> dict:
     """Build an Adaptive Card payload for the Webex message attachment."""
     body: list[dict] = [
-        _text_block("Nexus Dashboard Metadata", size="Medium", weight="Bolder"),
-        _text_block(_summary(diff), isSubtle=True, spacing="None"),
+        _text_block(
+            "Nexus Dashboard Metadata Update Available", size="Medium", weight="Bolder"
+        ),
+        _text_block(
+            "Download at [https://www.intersight.com](https://www.intersight.com)",
+            isSubtle=True,
+            spacing="None",
+        ),
     ]
 
     changes = _change_blocks(diff) if not diff["first_run"] else []
