@@ -54,10 +54,18 @@ class WebexClient:
         """Every space the bot belongs to, 1:1 and group."""
         return self._paginate(f"{API_BASE}/rooms", {"max": 100})
 
-    def last_inbound_message(self, room_id: str, bot_person_id: str) -> str:
-        items = self._request(
-            "GET", f"{API_BASE}/messages", params={"roomId": room_id, "max": 5}
-        ).json().get("items", [])
+    def last_inbound_message(
+        self, room_id: str, bot_person_id: str, is_group: bool = False
+    ) -> str:
+        params = {"roomId": room_id, "max": 5}
+        if is_group:
+            # Webex rejects unfiltered message listing in group spaces for bots.
+            params["mentionedPeople"] = "me"
+        items = (
+            self._request("GET", f"{API_BASE}/messages", params=params)
+            .json()
+            .get("items", [])
+        )
         for message in items:
             if message.get("personId") != bot_person_id:
                 return (message.get("text") or "").strip().lower()
@@ -75,11 +83,15 @@ class WebexClient:
         self._request("POST", f"{API_BASE}/messages", json=payload)
 
 
-def _opted_out(client: WebexClient, room_id: str, bot_person_id: str) -> bool:
+def _opted_out(client: WebexClient, room: dict, bot_person_id: str) -> bool:
+    try:
+        text = client.last_inbound_message(
+            room["id"], bot_person_id, room.get("type") == "group"
+        )
+    except WebexError:
+        return False
     # Group-space mentions arrive as "BotName stop", so match on words, not the whole string.
-    words = set(
-        client.last_inbound_message(room_id, bot_person_id).replace(",", " ").split()
-    )
+    words = set(text.replace(",", " ").split())
     if words & OPT_IN_WORDS:
         return False
     return bool(words & OPT_OUT_WORDS)
@@ -104,7 +116,7 @@ def notify(
     sent = skipped = failed = 0
     for room in rooms:
         room_id = room["id"]
-        if _opted_out(client, room_id, bot_person_id):
+        if _opted_out(client, room, bot_person_id):
             skipped += 1
             continue
         if dry_run:
