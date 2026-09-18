@@ -3,7 +3,7 @@ name: ND metadata check
 on:
   schedule:
     # 02:00 UTC = 9:00 PM EST (10:00 PM EDT).
-    - cron: "11 7 * * *"
+    - cron: "13 13 * * *"
   workflow_dispatch:
     inputs:
       force:
